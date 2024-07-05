@@ -5,14 +5,14 @@ use std::collections::{HashMap, HashSet};
 
 use super::User;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct UserBackend {
     users: HashMap<i64, User>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Credentials {
-    pub user_id: i64,
+    pub username: String,
     pub password: String,
 }
 
@@ -24,8 +24,9 @@ impl AuthnBackend for UserBackend {
 
     async fn authenticate(
         &self,
-        Credentials { user_id, password }: Self::Credentials,
+        Credentials { username, password }: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
+        let user_id = username.parse().unwrap_or(1);        
         match self.users.get(&user_id) {
             Some(user) => {
                 if password.as_bytes() == user.session_auth_hash() {

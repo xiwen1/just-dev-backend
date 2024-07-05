@@ -9,6 +9,7 @@ use crate::auth::UserBackend;
 use crate::sync::BroadcastMap;
 use crate::sync::DocumentRepository;
 use axum::extract::State;
+use axum::http::Method;
 use axum::{
     extract::{ws::WebSocket, Path, WebSocketUpgrade},
     http::StatusCode,
@@ -17,6 +18,7 @@ use axum::{
     Json, Router,
 };
 use axum_login::login_required;
+use axum_login::tower_sessions::cookie::SameSite;
 use axum_login::tracing::trace;
 use axum_login::{
     tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, SessionManagerLayer},
@@ -27,6 +29,10 @@ use axum_ycrdt_websocket::ws::AxumStream;
 
 use futures_util::StreamExt;
 use tokio::sync::Mutex;
+use tower_http::cors::Any;
+use tower_http::cors::CorsLayer;
+use tracing::info;
+use tracing::Level;
 
 #[derive(Clone)]
 struct AppState {
@@ -36,13 +42,23 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .init();
+
     let session_store = MemoryStore::default();
     let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false)
+        .with_same_site(SameSite::Lax)
+        .with_http_only(false)
         .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
     let backend = UserBackend::new();
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
+    let cors_layer = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers(Any);
 
     let room_state = Arc::new(Mutex::new(BroadcastMap::new()));
     let doc_repo = Arc::new(DocumentRepository::new());
@@ -55,14 +71,21 @@ async fn main() {
     let app = Router::new()
         .route("/:item", get(ws_handler))
         .with_state(app_state)
+        .route("/hello", get(hello))
         .route_layer(login_required!(UserBackend, login_url = "/login"))
         .route("/login", post(login))
+        .layer(cors_layer)
         .layer(auth_layer);
+        
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
         .await
         .unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn hello() -> impl IntoResponse {
+    (StatusCode::OK, "hello").into_response()
 }
 
 async fn ws_handler(
@@ -71,6 +94,7 @@ async fn ws_handler(
     State(app_state): State<Arc<AppState>>,
     auth_session: AuthSession<UserBackend>,
 ) -> impl IntoResponse {
+    info!("{:?}", auth_session.user);
     let room_state = app_state.room_state.clone();
     let doc_repo = app_state.doc_repo.clone();
     trace!(item);
@@ -118,6 +142,7 @@ async fn login(
     mut auth_session: AuthSession<UserBackend>,
     Json(creds): Json<Credentials>,
 ) -> impl IntoResponse {
+    info!("{:?}", creds);
     let user = match auth_session.authenticate(creds.clone()).await {
         Ok(Some(user)) => user,
         Ok(None) => return StatusCode::UNAUTHORIZED.into_response(),
