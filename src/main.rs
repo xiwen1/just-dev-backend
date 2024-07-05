@@ -9,6 +9,8 @@ use crate::auth::UserBackend;
 use crate::sync::BroadcastMap;
 use crate::sync::DocumentRepository;
 use axum::extract::State;
+use axum::http::header;
+use axum::http::HeaderValue;
 use axum::http::Method;
 use axum::{
     extract::{ws::WebSocket, Path, WebSocketUpgrade},
@@ -29,7 +31,6 @@ use axum_ycrdt_websocket::ws::AxumStream;
 
 use futures_util::StreamExt;
 use tokio::sync::Mutex;
-use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing::Level;
@@ -56,9 +57,11 @@ async fn main() {
     let backend = UserBackend::new();
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
     let cors_layer = CorsLayer::new()
-        .allow_origin(Any)
+        .allow_origin(["http://localhost:3000".parse::<HeaderValue>().unwrap()])
         .allow_methods(vec![Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers(Any);
+        .allow_private_network(true)
+        .allow_credentials(true)
+        .allow_headers([header::ACCEPT, header::AUTHORIZATION, header::COOKIE, header::CONTENT_TYPE]);
 
     let room_state = Arc::new(Mutex::new(BroadcastMap::new()));
     let doc_repo = Arc::new(DocumentRepository::new());
@@ -74,8 +77,8 @@ async fn main() {
         .route("/hello", get(hello))
         .route_layer(login_required!(UserBackend, login_url = "/login"))
         .route("/login", post(login))
-        .layer(cors_layer)
-        .layer(auth_layer);
+        .layer(auth_layer)
+        .layer(cors_layer);
         
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
@@ -134,7 +137,7 @@ async fn handle_socket(
 
     match sub.completed().await {
         Ok(_) => println!("broadcasting for channel finished successfully"),
-        Err(e) => eprintln!("broadcasting for channel finished abruptly: {}", e),
+        Err(e) => eprintln!("broadcaing for channel finished abruptly: {}", e),
     }
 }
 
