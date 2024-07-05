@@ -1,13 +1,4 @@
 use axum_login::AuthUser;
-use serde::Deserialize;
-
-
-
-#[derive(Deserialize, Clone)]
-pub struct Credentials {
-    pub username: String,
-    pub password: String,
-}
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -29,9 +20,9 @@ impl AuthUser for User {
 }
 
 impl User {
-    pub fn new(id: i64, doc_ids:&[i64]) -> Self {
+    pub fn new(id: i64, doc_ids: &[i64]) -> Self {
         User {
-            id, 
+            id,
             doc_ids: Vec::from(doc_ids),
             pw_hash: "password".as_bytes().to_vec(),
         }

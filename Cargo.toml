@@ -1,5 +1,5 @@
 [package]
-name = "axum-test"
+name = "just-dev-backend"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,6 +11,7 @@ axum-login = "0.15.3"
 axum-ycrdt-websocket = "0.1.0"
 futures-util = "0.3.30"
 serde = "1.0.203"
+surrealdb = "1.5.3"
 tokio = { version = "1.38.0", features = ["full"] }
 tower-http = "0.5.2"
 yrs = "0.18.8"

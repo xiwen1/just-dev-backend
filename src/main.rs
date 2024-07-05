@@ -1,12 +1,13 @@
 mod auth;
 mod sync;
+mod data;
 
 use std::sync::Arc;
 
 use crate::auth::Credentials;
+use crate::auth::UserBackend;
 use crate::sync::BroadcastMap;
 use crate::sync::DocumentRepository;
-use auth::UserBackend;
 use axum::extract::State;
 use axum::{
     extract::{ws::WebSocket, Path, WebSocketUpgrade},
@@ -55,10 +56,10 @@ async fn main() {
         .route("/:item", get(ws_handler))
         .with_state(app_state)
         .route_layer(login_required!(UserBackend, login_url = "/login"))
-        .layer(auth_layer)
-        .route("/login", post(login));
+        .route("/login", post(login))
+        .layer(auth_layer);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
     axum::serve(listener, app).await.unwrap();

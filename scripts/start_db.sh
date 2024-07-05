@@ -1,0 +1,1 @@
+surreal start --auth --user root --password root memory

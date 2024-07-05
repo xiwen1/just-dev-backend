@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-
 use axum_ycrdt_websocket::{broadcast::BroadcastGroup, AwarenessRef};
 use tokio::sync::RwLock;
 use yrs::{sync::Awareness, Doc, Text, Transact};
