@@ -1,0 +1,16 @@
+[package]
+name = "axum-test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = { version = "0.7.5", features = ["ws"] }
+axum-login = "0.15.3"
+axum-ycrdt-websocket = "0.1.0"
+futures-util = "0.3.30"
+serde = "1.0.203"
+tokio = { version = "1.38.0", features = ["full"] }
+tower-http = "0.5.2"
+yrs = "0.18.8"

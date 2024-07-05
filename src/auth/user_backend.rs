@@ -1,13 +1,10 @@
 use std::collections::{HashMap, HashSet};
-use std::fs::Permissions;
 use axum::async_trait;
-use axum_login::{AuthnBackend, AuthzBackend, UserId};
+use axum_login::{AuthUser, AuthnBackend, AuthzBackend, UserId};
 use serde::Deserialize;
 
 
 use super::User;
-
-
 
 #[derive(Clone, Default)]
 pub struct UserBackend {
@@ -30,7 +27,16 @@ impl AuthnBackend for UserBackend {
         &self,
         Credentials { user_id , password}: Self::Credentials,
     ) -> Result<Option<Self::User>, Self::Error> {
-        Ok(self.users.get(&user_id).cloned())
+        match self.users.get(&user_id) {
+            Some(user) => {
+                if password.as_bytes() == user.session_auth_hash() {
+                    Ok(Some(user.clone()))
+                } else {
+                    Ok(None)
+                }
+            },
+            None => Ok(None),
+        }
     }
 
     async fn get_user(
