@@ -4,36 +4,15 @@ mod data;
 
 use std::sync::Arc;
 
-use crate::auth::Credentials;
-use crate::auth::UserBackend;
-use crate::sync::BroadcastMap;
-use crate::sync::DocumentRepository;
-use axum::extract::State;
-use axum::http::header;
-use axum::http::HeaderValue;
-use axum::http::Method;
-use axum::{
-    extract::{ws::WebSocket, Path, WebSocketUpgrade},
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
-};
-use axum_login::login_required;
-use axum_login::tower_sessions::cookie::SameSite;
-use axum_login::tracing::trace;
-use axum_login::{
-    tower_sessions::{cookie::time::Duration, Expiry, MemoryStore, SessionManagerLayer},
-    AuthManagerLayerBuilder, AuthSession, AuthzBackend,
-};
-use axum_ycrdt_websocket::ws::AxumSink;
-use axum_ycrdt_websocket::ws::AxumStream;
+use crate::{auth::{Credentials, UserBackend}, sync::{BroadcastMap, DocumentRepository}};
+use axum::{extract::{ws::WebSocket, Path, State, WebSocketUpgrade}, http::{header, HeaderValue, Method, StatusCode}, response::IntoResponse, routing::{get, post}, Json, Router};
+use axum_login::{login_required, tower_sessions::{cookie::{time::Duration, SameSite}, Expiry, MemoryStore, SessionManagerLayer}, tracing::trace, AuthManagerLayerBuilder, AuthSession, AuthzBackend};
+use axum_ycrdt_websocket::ws::{AxumSink, AxumStream};
 
 use futures_util::StreamExt;
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
-use tracing::info;
-use tracing::Level;
+use tracing::{info, Level};
 
 #[derive(Clone)]
 struct AppState {
@@ -123,9 +102,6 @@ async fn handle_socket(
     let (sender, receiver) = socket.split();
     let sender = Arc::new(Mutex::new(AxumSink::from(sender)));
     let receiver = AxumStream::from(receiver);
-
-    // let mut inner_room_state = room_state.lock().await;
-    // let bcast = inner_room_state.get_room(doc_id, doc_state).await.unwrap();
 
     let bcast = room_state
         .lock()
