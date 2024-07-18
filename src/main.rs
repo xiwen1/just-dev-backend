@@ -13,7 +13,6 @@ use futures_util::StreamExt;
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
-
 #[derive(Clone)]
 struct AppState {
     room_state: Arc<Mutex<BroadcastMap>>,
